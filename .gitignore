@@ -34,3 +34,6 @@ build/
 
 ### 日志文件 ###
 logs/
+
+### JRebel ###
+rebel.xml

@@ -55,10 +55,10 @@ public class DubboTest {
         DubboTest dubboTest = new DubboTest();
         dubboTest.initProvider();
         dubboTest.initConsumer();
-        for (; ; ) {
-            dubboTest.userRpc.test();
-            Thread.sleep(3000);
-        }
+        // for (; ; ) {
+        //     dubboTest.userRpc.test();
+        //     Thread.sleep(3000);
+        // }
     }
 
 }

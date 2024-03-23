@@ -1,5 +1,7 @@
 package com.aurora.live.user.interfaces;
 
+import com.aurora.live.user.model.dto.UserDTO;
+
 /**
  * user rpc
  *
@@ -8,5 +10,12 @@ package com.aurora.live.user.interfaces;
  */
 public interface IUserRpc {
 
-    String test();
+    /**
+     * 根据 userId 查询用户信息
+     *
+     * @param userId 用户 id
+     * @return 用户信息
+     */
+    UserDTO selectOneByUserId(Long userId);
+
 }
