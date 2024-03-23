@@ -20,4 +20,11 @@ public interface IUserService extends IService<UserDO> {
      */
     UserDTO selectOneByUserId(Long userId);
 
+    /**
+     * 更新用户信息
+     *
+     * @param userDTO 用户信息
+     * @return 是否成功
+     */
+    boolean updateUserInfo(UserDTO userDTO);
 }

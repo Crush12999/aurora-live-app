@@ -3,9 +3,7 @@ package com.aurora.live.api.controller;
 import com.aurora.live.user.interfaces.IUserRpc;
 import com.aurora.live.user.model.dto.UserDTO;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * UserController
@@ -23,6 +21,11 @@ public class UserController {
     @GetMapping("/get-user-info")
     public UserDTO getUserInfo(Long userId){
         return userRpc.selectOneByUserId(userId);
+    }
+
+    @PutMapping("/update-user-info")
+    public boolean updateUserInfo(@RequestBody UserDTO userDTO) {
+        return userRpc.updateUserInfo(userDTO);
     }
 
 }

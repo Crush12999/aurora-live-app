@@ -28,4 +28,15 @@ public class UserRpcImpl implements IUserRpc {
     public UserDTO selectOneByUserId(Long userId) {
         return userService.selectOneByUserId(userId);
     }
+
+    /**
+     * 更新用户信息
+     *
+     * @param userDTO 用户信息
+     * @return 是否成功
+     */
+    @Override
+    public boolean updateUserInfo(UserDTO userDTO) {
+        return userService.updateUserInfo(userDTO);
+    }
 }
