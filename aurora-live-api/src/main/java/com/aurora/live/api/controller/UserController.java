@@ -28,4 +28,9 @@ public class UserController {
         return userRpc.updateUserInfo(userDTO);
     }
 
+    @PostMapping("/insert-user")
+    public boolean insertUser(@RequestBody UserDTO userDTO) {
+        return userRpc.insertUser(userDTO);
+    }
+
 }

@@ -40,4 +40,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO>
         }
         return this.updateById(ConvertBeanUtils.convert(userDTO, UserDO.class));
     }
+
+    /**
+     * 新增一个用户
+     *
+     * @param userDTO 用户信息
+     * @return 是否成功
+     */
+    @Override
+    public boolean insertUser(UserDTO userDTO) {
+        if (Objects.isNull(userDTO) || Objects.isNull(userDTO.getUserId())) {
+            return false;
+        }
+        return baseMapper.insert(ConvertBeanUtils.convert(userDTO, UserDO.class)) > 0;
+    }
 }

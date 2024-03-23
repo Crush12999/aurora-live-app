@@ -39,4 +39,15 @@ public class UserRpcImpl implements IUserRpc {
     public boolean updateUserInfo(UserDTO userDTO) {
         return userService.updateUserInfo(userDTO);
     }
+
+    /**
+     * 新增一个用户
+     *
+     * @param userDTO 用户信息
+     * @return 是否成功
+     */
+    @Override
+    public boolean insertUser(UserDTO userDTO) {
+        return userService.insertUser(userDTO);
+    }
 }

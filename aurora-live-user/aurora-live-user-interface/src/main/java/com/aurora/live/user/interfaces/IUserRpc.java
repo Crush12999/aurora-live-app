@@ -26,4 +26,12 @@ public interface IUserRpc {
      */
     boolean updateUserInfo(UserDTO userDTO);
 
+    /**
+     * 新增一个用户
+     *
+     * @param userDTO 用户信息
+     * @return 是否成功
+     */
+    boolean insertUser(UserDTO userDTO);
+
 }
