@@ -6,6 +6,9 @@ import com.aurora.live.user.provider.service.IUserService;
 import jakarta.annotation.Resource;
 import org.apache.dubbo.config.annotation.DubboService;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * 用户中台 rpc 实现
  *
@@ -49,5 +52,16 @@ public class UserRpcImpl implements IUserRpc {
     @Override
     public boolean insertUser(UserDTO userDTO) {
         return userService.insertUser(userDTO);
+    }
+
+    /**
+     * 通过用户 ID 批量查询用户信息
+     *
+     * @param userIds 用户 ID 列表
+     * @return 用户信息
+     */
+    @Override
+    public Map<Long, UserDTO> batchQueryUserInfo(List<Long> userIds) {
+        return userService.batchQueryUserInfo(userIds);
     }
 }

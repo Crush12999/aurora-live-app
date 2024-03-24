@@ -2,6 +2,9 @@ package com.aurora.live.user.interfaces;
 
 import com.aurora.live.user.model.dto.UserDTO;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * user rpc
  *
@@ -33,5 +36,13 @@ public interface IUserRpc {
      * @return 是否成功
      */
     boolean insertUser(UserDTO userDTO);
+
+    /**
+     * 通过用户 ID 批量查询用户信息
+     *
+     * @param userIds 用户 ID 列表
+     * @return 用户信息
+     */
+    Map<Long, UserDTO> batchQueryUserInfo(List<Long> userIds);
 
 }

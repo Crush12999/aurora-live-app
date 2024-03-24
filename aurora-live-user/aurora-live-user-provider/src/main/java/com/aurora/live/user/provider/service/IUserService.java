@@ -4,6 +4,9 @@ import com.aurora.live.user.model.dto.UserDTO;
 import com.aurora.live.user.provider.dao.entity.UserDO;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * 用户 Service
  *
@@ -35,4 +38,12 @@ public interface IUserService extends IService<UserDO> {
      * @return 是否成功
      */
     boolean insertUser(UserDTO userDTO);
+
+    /**
+     * 通过用户 ID 批量查询用户信息
+     *
+     * @param userIds 用户 ID 列表
+     * @return 用户信息
+     */
+    Map<Long, UserDTO> batchQueryUserInfo(List<Long> userIds);
 }

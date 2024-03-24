@@ -7,12 +7,16 @@ import com.aurora.live.user.provider.dao.entity.UserDO;
 import com.aurora.live.user.provider.dao.mapper.UserMapper;
 import com.aurora.live.user.provider.service.IUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.google.common.collect.Maps;
 import jakarta.annotation.Resource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * UserServiceImpl
@@ -72,5 +76,67 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO>
             return false;
         }
         return baseMapper.insert(ConvertBeanUtils.convert(userDTO, UserDO.class)) > 0;
+    }
+
+    /**
+     * 通过用户 ID 批量查询用户信息
+     * 场景：进入直播间时批量查询直播间内发了弹幕的一些人的基础信息，比如头像时会使用
+     *
+     * @param userIds 用户 ID 列表
+     * @return 用户信息
+     */
+    @Override
+    public Map<Long, UserDTO> batchQueryUserInfo(List<Long> userIds) {
+        if (CollectionUtils.isEmpty(userIds)) {
+            return Maps.newHashMap();
+        }
+        userIds = userIds.stream().filter(id -> id > 10000).collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(userIds)) {
+            return Maps.newHashMap();
+        }
+        // redis，通过 multi get 批量获取
+        List<String> keyList = new ArrayList<>();
+        userIds.forEach(userId -> {
+            keyList.add(userProviderCacheKeyBuilder.buildUserInfoKey(userId));
+        });
+        List<UserDTO> userDTOList = Optional.ofNullable(redisTemplate.opsForValue().multiGet(keyList)).orElse(new ArrayList<>())
+                .stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        if (!CollectionUtils.isEmpty(userDTOList) && userDTOList.size() == userIds.size()) {
+            return userDTOList.stream().collect(Collectors.toMap(UserDTO::getUserId, e -> e));
+        }
+
+        // 在缓存里的 id
+        List<Long> userIdInCacheList = userDTOList.stream()
+                .map(UserDTO::getUserId)
+                .collect(Collectors.toList());
+        // 不在缓存里的 id
+        List<Long> userIdNotInCacheList = userIds.stream()
+                .filter(e -> !userIdInCacheList.contains(e))
+                .collect(Collectors.toList());
+
+
+        // 使用多线程查询归并，防止直接通过 ShardingJDBC 查询，全部在数据库层面做 union all 性能不好
+        Map<Long, List<Long>> userIdMap = userIdNotInCacheList.stream().collect(Collectors.groupingBy(userId -> userId % 100));
+        List<UserDTO> dbQueryResult = new CopyOnWriteArrayList<>();
+        // 并行流执行
+        userIdMap.values().parallelStream().forEach(queryUserIdList -> {
+            dbQueryResult.addAll(ConvertBeanUtils.convertList(baseMapper.selectBatchIds(queryUserIdList), UserDTO.class));
+        });
+
+        // 将查询出来的结果缓存到 Redis
+        if (!CollectionUtils.isEmpty(dbQueryResult)) {
+            Map<String, UserDTO> saveCacheMap = dbQueryResult.stream()
+                    .collect(
+                            Collectors.toMap(
+                                    userDTO -> userProviderCacheKeyBuilder.buildUserInfoKey(userDTO.getUserId()),
+                                    e -> e
+                            )
+                    );
+            redisTemplate.opsForValue().multiSet(saveCacheMap);
+            userDTOList.addAll(dbQueryResult);
+        }
+        return userDTOList.stream().collect(Collectors.toMap(UserDTO::getUserId, e -> e));
     }
 }
