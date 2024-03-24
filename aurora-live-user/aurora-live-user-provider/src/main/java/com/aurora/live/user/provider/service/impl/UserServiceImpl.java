@@ -1,14 +1,18 @@
 package com.aurora.live.user.provider.service.impl;
 
 import com.aurora.live.common.interfaces.ConvertBeanUtils;
+import com.aurora.live.framework.redis.starter.key.UserProviderCacheKeyBuilder;
 import com.aurora.live.user.model.dto.UserDTO;
 import com.aurora.live.user.provider.dao.entity.UserDO;
 import com.aurora.live.user.provider.dao.mapper.UserMapper;
 import com.aurora.live.user.provider.service.IUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import jakarta.annotation.Resource;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  * UserServiceImpl
@@ -20,12 +24,27 @@ import java.util.Objects;
 public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO>
         implements IUserService {
 
+    @Resource
+    private RedisTemplate<String, UserDTO> redisTemplate;
+
+    @Resource
+    private UserProviderCacheKeyBuilder userProviderCacheKeyBuilder;
+
     @Override
     public UserDTO selectOneByUserId(Long userId) {
         if (Objects.isNull(userId)) {
             return null;
         }
-        return ConvertBeanUtils.convert(this.getById(userId), UserDTO.class);
+        String redisKey = userProviderCacheKeyBuilder.buildUserInfoKey(userId);
+        UserDTO userDTO = redisTemplate.opsForValue().get(redisKey);
+        if (Objects.nonNull(userDTO)) {
+            return userDTO;
+        }
+        userDTO = ConvertBeanUtils.convert(this.getById(userId), UserDTO.class);
+        if (Objects.nonNull(userDTO)) {
+            redisTemplate.opsForValue().set(redisKey, userDTO, 30, TimeUnit.MINUTES);
+        }
+        return userDTO;
     }
 
     /**

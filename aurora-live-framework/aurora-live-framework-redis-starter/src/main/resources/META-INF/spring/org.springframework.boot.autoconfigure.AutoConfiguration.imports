@@ -1,0 +1,3 @@
+com.aurora.live.framework.redis.starter.config.RedisConfig
+com.aurora.live.framework.redis.starter.key.UserProviderCacheKeyBuilder
+com.aurora.live.framework.redis.starter.key.OtherProviderCacheKeyBuilder

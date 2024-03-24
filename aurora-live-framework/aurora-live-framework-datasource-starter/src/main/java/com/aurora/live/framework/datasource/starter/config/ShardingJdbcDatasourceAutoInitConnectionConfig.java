@@ -10,7 +10,7 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 
 /**
- * ShardingJDBC 数据源自动初始化
+ * ShardingJDBC 数据源自动初始化, 用于初始化数据库连接池的时候去提前建立连接
  * 后续考虑如何将这个配置类做成一个参数控制
  *
  * @author halo

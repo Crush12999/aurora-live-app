@@ -1,4 +1,6 @@
 spring:
+  application:
+    name: aurora-live-user-provider
   datasource:
     driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
     url: jdbc:shardingsphere:classpath:aurora-db-sharding.yaml
@@ -7,11 +9,19 @@ spring:
       minimum-idle: 150
       maximum-pool-size: 300
       idle-timeout: 60000
-      connection-init-sql: select 1
+      # connection-init-sql: select 1
       connection-timeout: 4000
       max-lifetime: 60000
-  application:
-    name: aurora-live-user-application
+
+  data:
+    redis:
+      port: 6379
+      host: 127.0.0.1
+      lettuce:
+        pool:
+          min-idle: 10
+          max-active: 50
+          max-idle: 20
 
 dubbo:
   application:

@@ -1,2 +1,9 @@
 server:
   port: 8099
+
+dubbo:
+  application:
+    name: aurora-live-api
+    qos-enable: false
+  registry:
+    address: nacos://halo.test.com:8848?namespace=aurora-live-test&&username=root&&password=halo_nacos
