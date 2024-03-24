@@ -4,7 +4,7 @@ spring:
     url: jdbc:shardingsphere:classpath:aurora-db-sharding.yaml
     hikari:
       pool-name: aurora-user-pool
-      minimum-idle: 15
+      minimum-idle: 150
       maximum-pool-size: 300
       idle-timeout: 60000
       connection-init-sql: select 1

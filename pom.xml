@@ -13,6 +13,7 @@
         <module>aurora-live-user</module>
         <module>aurora-live-api</module>
         <module>aurora-live-common-interface</module>
+        <module>aurora-live-framework</module>
     </modules>
 
     <properties>

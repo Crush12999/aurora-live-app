@@ -2,14 +2,14 @@ dataSources:
   user_master:  ## 新表，重建的分表
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
-    jdbcUrl: jdbc:mysql://halo.test.com:3306/aurora_live_user?useUnicode=true&characterEncoding=utf8
+    jdbcUrl: jdbc:mysql://halo.test.com:8801/aurora_live_user?useUnicode=true&characterEncoding=utf8
     username: root
     password: halo@mysql#99.
 
   user_slave0:  ##新表，重建的分表
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
-    jdbcUrl: jdbc:mysql://halo.test.com:3306/aurora_live_user?useUnicode=true&characterEncoding=utf8
+    jdbcUrl: jdbc:mysql://halo.test.com:8811/aurora_live_user?useUnicode=true&characterEncoding=utf8
     username: root
     password: halo@mysql#99.
 

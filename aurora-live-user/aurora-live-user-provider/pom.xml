@@ -67,6 +67,11 @@
             <artifactId>aurora-live-common-interface</artifactId>
             <version>1.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.aurora.live</groupId>
+            <artifactId>aurora-live-framework-datasource-starter</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
 
     <build>
