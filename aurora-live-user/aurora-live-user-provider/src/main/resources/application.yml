@@ -10,3 +10,14 @@ spring:
       connection-init-sql: select 1
       connection-timeout: 4000
       max-lifetime: 60000
+  application:
+    name: aurora-live-user-application
+
+dubbo:
+  application:
+    name: ${spring.application.name}
+  registry:
+    address: nacos://halo.test.com:8848?namespace=aurora-live-test&&username=root&&password=halo_nacos
+  protocol:
+    name: dubbo
+    port: 9090
