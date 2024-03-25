@@ -9,12 +9,17 @@ import com.aurora.live.user.provider.service.IUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.common.collect.Maps;
 import jakarta.annotation.Resource;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -135,8 +140,28 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO>
                             )
                     );
             redisTemplate.opsForValue().multiSet(saveCacheMap);
+            // 使用管道批量传输过期时间命令，减少网络 IO 开销
+            redisTemplate.executePipelined(new SessionCallback<>() {
+                @Override
+                public <K, V> Object execute(@Nonnull RedisOperations<K, V> operations) throws DataAccessException {
+                    for (String redisKey : saveCacheMap.keySet()) {
+                        operations.expire((K) redisKey, createRandomExpireTime(), TimeUnit.SECONDS);
+                    }
+                    return null;
+                }
+            });
             userDTOList.addAll(dbQueryResult);
         }
         return userDTOList.stream().collect(Collectors.toMap(UserDTO::getUserId, e -> e));
+    }
+
+    /**
+     * 在一个时间范围内创建一个随机过期时间，防止同一时间内缓存大量失效造成缓存雪崩
+     *
+     * @return 缓存过期时间，单位: 秒
+     */
+    private int createRandomExpireTime() {
+        int randomNumSecond = ThreadLocalRandom.current().nextInt(1000);
+        return randomNumSecond + 60 * 30;
     }
 }
