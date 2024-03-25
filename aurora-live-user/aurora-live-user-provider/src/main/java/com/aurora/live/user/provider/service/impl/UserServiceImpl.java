@@ -156,7 +156,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO>
     }
 
     /**
-     * 在一个时间范围内创建一个随机过期时间，防止同一时间内缓存大量失效造成缓存雪崩
+     * 随机时间 + 业务预期失效时间，防止同一时间内缓存大量失效进而导致系统 DB 压力大
+     * 过期时间 = base 时间 + 随机时间
      *
      * @return 缓存过期时间，单位: 秒
      */
