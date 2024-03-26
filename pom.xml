@@ -35,6 +35,7 @@
         <dubbo.version>2.7.8</dubbo.version>
         <dubbo-spring-boot.version>3.2.0-beta.3</dubbo-spring-boot.version>
         <maven.compiler.compilerVersion>17</maven.compiler.compilerVersion>
+        <rocketmq.client.version>4.9.6</rocketmq.client.version>
     </properties>
 
     <parent>
@@ -68,6 +69,12 @@
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-boot-starter</artifactId>
                 <version>${mybatis-plus.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-client</artifactId>
+                <version>${rocketmq.client.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

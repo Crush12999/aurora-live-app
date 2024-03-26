@@ -23,6 +23,17 @@ spring:
           max-active: 50
           max-idle: 20
 
+aurora:
+  rmq:
+    producer:
+      nameSrv: 127.0.0.1:9876
+      groupName: ${spring.application.name}
+      retryTimes: 3
+      sendTimeOut: 3000
+    consumer:
+      nameSrv: 127.0.0.1:9876
+      groupName: ${spring.application.name}
+
 dubbo:
   application:
     name: ${spring.application.name}

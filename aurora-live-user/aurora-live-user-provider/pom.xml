@@ -57,6 +57,10 @@
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-client</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.aurora.live</groupId>

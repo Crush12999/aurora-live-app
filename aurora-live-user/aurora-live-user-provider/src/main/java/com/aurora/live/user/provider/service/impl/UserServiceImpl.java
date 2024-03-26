@@ -115,12 +115,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO>
         // 在缓存里的 id
         List<Long> userIdInCacheList = userDTOList.stream()
                 .map(UserDTO::getUserId)
-                .collect(Collectors.toList());
+                .toList();
         // 不在缓存里的 id
         List<Long> userIdNotInCacheList = userIds.stream()
                 .filter(e -> !userIdInCacheList.contains(e))
-                .collect(Collectors.toList());
-
+                .toList();
 
         // 使用多线程查询归并，防止直接通过 ShardingJDBC 查询，全部在数据库层面做 union all 性能不好
         Map<Long, List<Long>> userIdMap = userIdNotInCacheList.stream().collect(Collectors.groupingBy(userId -> userId % 100));

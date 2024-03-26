@@ -11,6 +11,7 @@ import org.springframework.cache.support.NullValue;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
+import java.io.Serial;
 
 /**
  * 创建自定义配置 ObjectMapper 的实例工厂
@@ -55,6 +56,7 @@ public class MapperFactory {
      * @since 1.8
      */
     private static class MapperNullValueSerializer extends StdSerializer<NullValue> {
+        @Serial
         private static final long serialVersionUID = 1999052150548658808L;
         private final String classIdentifier;
 
