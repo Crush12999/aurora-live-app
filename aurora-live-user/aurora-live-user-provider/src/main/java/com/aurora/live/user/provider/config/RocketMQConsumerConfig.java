@@ -51,19 +51,16 @@ public class RocketMQConsumerConfig implements InitializingBean {
             defaultMQPushConsumer.setConsumeMessageBatchMaxSize(1);
             defaultMQPushConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
             defaultMQPushConsumer.subscribe("user-update-cache", "*");
-            defaultMQPushConsumer.setMessageListener(new MessageListenerConcurrently() {
-                @Override
-                public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
-                    String msgStr = new String(msgs.get(0).getBody());
-                    UserDTO userDTO = JSON.parseObject(msgStr, UserDTO.class);
-                    if (userDTO == null || userDTO.getUserId() == null) {
-                        LOGGER.error("用户id为空，参数异常，内容:{}", msgStr);
-                        return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-                    }
-                    redisTemplate.delete(userProviderCacheKeyBuilder.buildUserInfoKey(userDTO.getUserId()));
-                    LOGGER.error("延迟删除处理，userDTO is {}", userDTO);
+            defaultMQPushConsumer.setMessageListener((MessageListenerConcurrently) (msgList, context) -> {
+                String msgStr = new String(msgList.get(0).getBody());
+                UserDTO userDTO = JSON.parseObject(msgStr, UserDTO.class);
+                if (userDTO == null || userDTO.getUserId() == null) {
+                    LOGGER.error("用户id为空，参数异常，内容:{}", msgStr);
                     return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                 }
+                redisTemplate.delete(userProviderCacheKeyBuilder.buildUserInfoKey(userDTO.getUserId()));
+                LOGGER.error("延迟删除处理，userDTO is {}", userDTO);
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             });
             defaultMQPushConsumer.start();
             LOGGER.info("mq 消费者启动成功, nameSrv is {}", consumerProperties.getNameSrv());

@@ -1,5 +1,6 @@
 package com.aurora.live.user.provider.service.impl;
 
+import com.alibaba.fastjson2.JSON;
 import com.aurora.live.common.interfaces.ConvertBeanUtils;
 import com.aurora.live.framework.redis.starter.key.UserProviderCacheKeyBuilder;
 import com.aurora.live.user.model.dto.UserDTO;
@@ -9,6 +10,8 @@ import com.aurora.live.user.provider.service.IUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.common.collect.Maps;
 import jakarta.annotation.Resource;
+import org.apache.rocketmq.client.producer.MQProducer;
+import org.apache.rocketmq.common.message.Message;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -39,6 +42,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO>
     @Resource
     private UserProviderCacheKeyBuilder userProviderCacheKeyBuilder;
 
+    @Resource
+    private MQProducer mqProducer;
+
     @Override
     public UserDTO selectOneByUserId(Long userId) {
         if (Objects.isNull(userId)) {
@@ -66,7 +72,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO>
         if (Objects.isNull(userDTO) || Objects.isNull(userDTO.getUserId())) {
             return false;
         }
-        return this.updateById(ConvertBeanUtils.convert(userDTO, UserDO.class));
+        this.updateById(ConvertBeanUtils.convert(userDTO, UserDO.class));
+        String redisKey = userProviderCacheKeyBuilder.buildUserInfoKey(userDTO.getUserId());
+        redisTemplate.delete(redisKey);
+        // 发送延迟消息实现延时双删
+        try {
+            Message message = new Message();
+            message.setBody(JSON.toJSONString(userDTO).getBytes());
+            message.setTopic("user-update-cache");
+            // 延迟级别，1代表延迟一秒发送
+            message.setDelayTimeLevel(1);
+            mqProducer.send(message);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return true;
     }
 
     /**
