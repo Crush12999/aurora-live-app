@@ -14,6 +14,7 @@
         <module>aurora-live-api</module>
         <module>aurora-live-common-interface</module>
         <module>aurora-live-framework</module>
+        <module>aurora-live-id-generate</module>
     </modules>
 
     <properties>
@@ -75,6 +76,12 @@
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-client</artifactId>
                 <version>${rocketmq.client.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.dubbo</groupId>
+                <artifactId>dubbo-spring-boot-starter</artifactId>
+                <version>${dubbo-spring-boot.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
