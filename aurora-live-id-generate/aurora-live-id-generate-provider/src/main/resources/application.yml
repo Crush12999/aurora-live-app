@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: aurora-live-id-generate-provider
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 访问主库
+    url: jdbc:mysql://halo.test.com:8801/aurora_live_common?useUnicode=true&characterEncoding=utf8
+    username: root
+    password: halo@mysql#99.
+
+dubbo:
+  application:
+    name: ${spring.application.name}
+  registry:
+    address: nacos://halo.test.com:8848?namespace=aurora-live-test&&username=root&&password=halo_nacos
+  protocol:
+    name: dubbo
+    port: 9097

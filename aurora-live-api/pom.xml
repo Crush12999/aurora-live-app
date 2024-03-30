@@ -41,6 +41,11 @@
             <artifactId>aurora-live-user-interface</artifactId>
             <version>1.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.aurora.live</groupId>
+            <artifactId>aurora-live-id-generate-interface</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
 
 </project>

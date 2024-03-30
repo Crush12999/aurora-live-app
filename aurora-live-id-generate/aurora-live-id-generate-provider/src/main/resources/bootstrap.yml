@@ -1,0 +1,8 @@
+spring:
+  cloud:
+    nacos:
+      username: root
+      password: halo_nacos
+      discovery:
+        server-addr: halo.test.com:8848
+        namespace: aurora-live-test
