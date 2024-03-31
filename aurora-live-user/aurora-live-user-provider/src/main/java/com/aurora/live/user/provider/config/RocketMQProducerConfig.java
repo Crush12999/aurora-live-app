@@ -31,14 +31,11 @@ public class RocketMQProducerConfig {
     @Bean
     public MQProducer mqProducer() {
         ThreadPoolExecutor asyncThreadPoolExecutor = new ThreadPoolExecutor(100, 150, 3, TimeUnit.MINUTES,
-                new ArrayBlockingQueue<>(1000), new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                Thread thread = new Thread(r);
-                thread.setName(applicationName + ":rmq-producer:" + ThreadLocalRandom.current().nextInt(1000));
-                return thread;
-            }
-        });
+                new ArrayBlockingQueue<>(1000), r -> {
+                    Thread thread = new Thread(r);
+                    thread.setName(applicationName + ":rmq-producer:" + ThreadLocalRandom.current().nextInt(1000));
+                    return thread;
+                });
         DefaultMQProducer defaultMQProducer = new DefaultMQProducer();
         try {
             defaultMQProducer.setNamesrvAddr(producerProperties.getNameSrv());
