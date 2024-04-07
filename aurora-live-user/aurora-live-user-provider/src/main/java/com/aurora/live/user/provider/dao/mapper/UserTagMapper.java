@@ -15,7 +15,7 @@ import org.apache.ibatis.annotations.Update;
 public interface UserTagMapper extends BaseMapper<UserTagDO> {
 
     /**
-     * 设置标签
+     * 设置标签，只允许第一次设置成功
      *
      * @param userId    用户 id
      * @param fieldName 要设置的标签字段
@@ -23,12 +23,15 @@ public interface UserTagMapper extends BaseMapper<UserTagDO> {
      * @return 设置结果
      */
     @Update("""
-                update t_user_tag set ${fieldName}=${fieldName} | #{tag} where user_id = #{userId}
+                update t_user_tag 
+                    set ${fieldName}=${fieldName} | #{tag} 
+                where user_id = #{userId} 
+                    and ${fieldName} & #{tag}=0
             """)
     int setTag(Long userId, String fieldName, long tag);
 
     /**
-     * 取消标签
+     * 取消标签，只允许第一次删除成功
      *
      * @param userId    用户 id
      * @param fieldName 要设置的标签字段
@@ -36,7 +39,10 @@ public interface UserTagMapper extends BaseMapper<UserTagDO> {
      * @return 取消结果
      */
     @Update("""
-                update t_user_tag set ${fieldName}=${fieldName} &~ #{tag} where user_id = #{userId} 
+                update t_user_tag 
+                    set ${fieldName}=${fieldName} &~ #{tag} 
+                where user_id = #{userId} 
+                    and ${fieldName} & #{tag}=#{tag}
             """)
     int cancelTag(Long userId, String fieldName, long tag);
 }
