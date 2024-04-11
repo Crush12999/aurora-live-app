@@ -3,6 +3,9 @@ package com.aurora.live.user.provider.service.impl;
 import com.alibaba.fastjson2.JSON;
 import com.aurora.live.common.interfaces.ConvertBeanUtils;
 import com.aurora.live.framework.redis.starter.key.UserProviderCacheKeyBuilder;
+import com.aurora.live.user.constants.CacheAsyncDeleteCode;
+import com.aurora.live.user.constants.UserProviderTopicNames;
+import com.aurora.live.user.model.dto.UserCacheAsyncDeleteDTO;
 import com.aurora.live.user.model.dto.UserDTO;
 import com.aurora.live.user.provider.dao.entity.UserDO;
 import com.aurora.live.user.provider.dao.mapper.UserMapper;
@@ -72,19 +75,26 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO>
         if (Objects.isNull(userDTO) || Objects.isNull(userDTO.getUserId())) {
             return false;
         }
-        this.updateById(ConvertBeanUtils.convert(userDTO, UserDO.class));
-        String redisKey = userProviderCacheKeyBuilder.buildUserInfoKey(userDTO.getUserId());
-        redisTemplate.delete(redisKey);
-        // 发送延迟消息实现延时双删
-        try {
+        boolean updateStatus = this.updateById(ConvertBeanUtils.convert(userDTO, UserDO.class));
+        if (updateStatus) {
+            String redisKey = userProviderCacheKeyBuilder.buildUserInfoKey(userDTO.getUserId());
+            redisTemplate.delete(redisKey);
+            UserCacheAsyncDeleteDTO userCacheAsyncDeleteDTO = new UserCacheAsyncDeleteDTO();
+            userCacheAsyncDeleteDTO.setCode(CacheAsyncDeleteCode.USER_INFO_DELETE.getCode());
+            Map<String, Object> jsonParam = new HashMap<>();
+            jsonParam.put("userId", userDTO.getUserId());
+            userCacheAsyncDeleteDTO.setJson(JSON.toJSONString(jsonParam));
             Message message = new Message();
+            message.setTopic(UserProviderTopicNames.CACHE_ASYNC_DELETE_TOPIC);
             message.setBody(JSON.toJSONString(userDTO).getBytes());
-            message.setTopic("user-update-cache");
-            // 延迟级别，1代表延迟一秒发送
+            // 延迟级别，1 代表延迟一秒发送
             message.setDelayTimeLevel(1);
-            mqProducer.send(message);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            try {
+                // 发送延迟消息实现延时双删
+                mqProducer.send(message);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
         return true;
     }

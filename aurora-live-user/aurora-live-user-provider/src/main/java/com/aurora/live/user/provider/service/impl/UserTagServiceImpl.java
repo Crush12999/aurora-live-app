@@ -1,13 +1,21 @@
 package com.aurora.live.user.provider.service.impl;
 
+import com.alibaba.fastjson2.JSON;
+import com.aurora.live.common.interfaces.ConvertBeanUtils;
 import com.aurora.live.framework.redis.starter.key.UserProviderCacheKeyBuilder;
+import com.aurora.live.user.constants.CacheAsyncDeleteCode;
+import com.aurora.live.user.constants.UserProviderTopicNames;
 import com.aurora.live.user.constants.UserTagFieldNameConstant;
 import com.aurora.live.user.constants.UserTagsEnum;
+import com.aurora.live.user.model.dto.UserCacheAsyncDeleteDTO;
+import com.aurora.live.user.model.dto.UserTagDTO;
 import com.aurora.live.user.provider.dao.entity.UserTagDO;
 import com.aurora.live.user.provider.dao.mapper.UserTagMapper;
 import com.aurora.live.user.provider.service.IUserTagService;
 import com.aurora.live.user.utils.TagInfoUtil;
 import jakarta.annotation.Resource;
+import org.apache.rocketmq.client.producer.MQProducer;
+import org.apache.rocketmq.common.message.Message;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.RedisCallback;
@@ -16,7 +24,10 @@ import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 用户标签 service impl
@@ -31,10 +42,13 @@ public class UserTagServiceImpl implements IUserTagService {
     private UserTagMapper userTagMapper;
 
     @Resource
-    private RedisTemplate<String, String> redisTemplate;
+    private RedisTemplate<String, UserTagDTO> redisTemplate;
 
     @Resource
     private UserProviderCacheKeyBuilder cacheKeyBuilder;
+
+    @Resource
+    private MQProducer mqProducer;
 
     /**
      * 设置标签
@@ -49,6 +63,7 @@ public class UserTagServiceImpl implements IUserTagService {
         // 失败：1.已经设置过了标签；2.数据库没有初始化记录
         boolean updateStatus = userTagMapper.setTag(userId, userTagsEnum.getFieldName(), userTagsEnum.getTag()) > 0;
         if (updateStatus) {
+            deleteUserTagDtoFromRedis(userId);
             return true;
         }
 
@@ -95,7 +110,12 @@ public class UserTagServiceImpl implements IUserTagService {
      */
     @Override
     public boolean cancelTag(Long userId, UserTagsEnum userTagsEnum) {
-        return userTagMapper.cancelTag(userId, userTagsEnum.getFieldName(), userTagsEnum.getTag()) > 0;
+        boolean cancelStatus = userTagMapper.cancelTag(userId, userTagsEnum.getFieldName(), userTagsEnum.getTag()) > 0;
+        if (!cancelStatus) {
+            return false;
+        }
+        deleteUserTagDtoFromRedis(userId);
+        return cancelStatus;
     }
 
     /**
@@ -107,18 +127,68 @@ public class UserTagServiceImpl implements IUserTagService {
      */
     @Override
     public boolean containTag(Long userId, UserTagsEnum userTagsEnum) {
-        UserTagDO userTagDO = userTagMapper.selectById(userId);
-        if (Objects.isNull(userTagDO)) {
+        UserTagDTO userTagDTO = this.queryByUserIdFromRedis(userId);
+        if (Objects.isNull(userTagDTO)) {
             return false;
         }
         String queryFieldName = userTagsEnum.getFieldName();
         if (UserTagFieldNameConstant.TAG_INFO_01.equals(queryFieldName)) {
-            return TagInfoUtil.isContain(userTagDO.getTagInfo01(), userTagsEnum.getTag());
+            return TagInfoUtil.isContain(userTagDTO.getTagInfo01(), userTagsEnum.getTag());
         } else if (UserTagFieldNameConstant.TAG_INFO_02.equals(queryFieldName)) {
-            return TagInfoUtil.isContain(userTagDO.getTagInfo02(), userTagsEnum.getTag());
+            return TagInfoUtil.isContain(userTagDTO.getTagInfo02(), userTagsEnum.getTag());
         } else if (UserTagFieldNameConstant.TAG_INFO_03.equals(queryFieldName)) {
-            return TagInfoUtil.isContain(userTagDO.getTagInfo03(), userTagsEnum.getTag());
+            return TagInfoUtil.isContain(userTagDTO.getTagInfo03(), userTagsEnum.getTag());
         }
         return false;
     }
+
+    /**
+     * 从 redis 中删除用户标签对象
+     *
+     * @param userId 用户 ID
+     */
+    private void deleteUserTagDtoFromRedis(Long userId) {
+        String redisKey = cacheKeyBuilder.buildTagKey(userId);
+        redisTemplate.delete(redisKey);
+
+        UserCacheAsyncDeleteDTO userCacheAsyncDeleteDTO = new UserCacheAsyncDeleteDTO();
+        userCacheAsyncDeleteDTO.setCode(CacheAsyncDeleteCode.USER_TAG_DELETE.getCode());
+        Map<String, Object> jsonParam = new HashMap<>();
+        jsonParam.put("userId", userId);
+        userCacheAsyncDeleteDTO.setJson(JSON.toJSONString(jsonParam));
+
+        Message message = new Message();
+        message.setTopic(UserProviderTopicNames.CACHE_ASYNC_DELETE_TOPIC);
+        message.setBody(JSON.toJSONString(userCacheAsyncDeleteDTO).getBytes());
+        // 延迟一秒进行缓存的二次删除
+        message.setDelayTimeLevel(1);
+        try {
+            mqProducer.send(message);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * 从 redis 中查询用户标签对象
+     *
+     * @param userId 用户 ID
+     * @return 用户标签对象
+     */
+    private UserTagDTO queryByUserIdFromRedis(Long userId) {
+        String redisKey = cacheKeyBuilder.buildTagKey(userId);
+        UserTagDTO userTagDTO = redisTemplate.opsForValue().get(redisKey);
+        if (userTagDTO != null) {
+            return userTagDTO;
+        }
+        UserTagDO userTagDO = userTagMapper.selectById(userId);
+        if (userTagDO == null) {
+            return null;
+        }
+        userTagDTO = ConvertBeanUtils.convert(userTagDO, UserTagDTO.class);
+        redisTemplate.opsForValue().set(redisKey, userTagDTO);
+        redisTemplate.expire(redisKey, 30, TimeUnit.MINUTES);
+        return userTagDTO;
+    }
+
 }

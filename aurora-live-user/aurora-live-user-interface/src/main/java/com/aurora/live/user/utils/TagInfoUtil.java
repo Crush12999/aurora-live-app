@@ -18,6 +18,7 @@ public class TagInfoUtil {
      * @return 是否存在
      */
     public static boolean isContain(Long tagInfo, Long matchTag) {
+        // 需要根据标签枚举中的 fieldName 来识别需要匹配 MySQL 表中哪个字段的标签值
         return Objects.nonNull(tagInfo) && Objects.nonNull(matchTag) && matchTag > 0 && (tagInfo & matchTag) == matchTag;
     }
 

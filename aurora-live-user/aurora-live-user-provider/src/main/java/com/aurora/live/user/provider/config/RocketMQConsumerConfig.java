@@ -2,22 +2,20 @@ package com.aurora.live.user.provider.config;
 
 import com.alibaba.fastjson.JSON;
 import com.aurora.live.framework.redis.starter.key.UserProviderCacheKeyBuilder;
-import com.aurora.live.user.model.dto.UserDTO;
+import com.aurora.live.user.constants.CacheAsyncDeleteCode;
+import com.aurora.live.user.constants.UserProviderTopicNames;
+import com.aurora.live.user.model.dto.UserCacheAsyncDeleteDTO;
 import jakarta.annotation.Resource;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
-import org.apache.rocketmq.common.message.MessageExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.RedisTemplate;
-
-import java.util.List;
 
 /**
  * RocketMQ 的消费者 bean 配置类
@@ -46,20 +44,24 @@ public class RocketMQConsumerConfig implements InitializingBean {
         try {
             // 初始化我们的RocketMQ消费者
             DefaultMQPushConsumer defaultMQPushConsumer = new DefaultMQPushConsumer();
+            defaultMQPushConsumer.setVipChannelEnabled(false);
             defaultMQPushConsumer.setNamesrvAddr(consumerProperties.getNameSrv());
-            defaultMQPushConsumer.setConsumerGroup(consumerProperties.getGroupName());
+            defaultMQPushConsumer.setConsumerGroup(consumerProperties.getGroupName() + "_" + RocketMQConsumerConfig.class.getSimpleName());
             defaultMQPushConsumer.setConsumeMessageBatchMaxSize(1);
             defaultMQPushConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-            defaultMQPushConsumer.subscribe("user-update-cache", "*");
+            defaultMQPushConsumer.subscribe(UserProviderTopicNames.CACHE_ASYNC_DELETE_TOPIC, "");
             defaultMQPushConsumer.setMessageListener((MessageListenerConcurrently) (msgList, context) -> {
                 String msgStr = new String(msgList.get(0).getBody());
-                UserDTO userDTO = JSON.parseObject(msgStr, UserDTO.class);
-                if (userDTO == null || userDTO.getUserId() == null) {
-                    LOGGER.error("用户id为空，参数异常，内容:{}", msgStr);
-                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                UserCacheAsyncDeleteDTO userCacheAsyncDeleteDTO = JSON.parseObject(msgStr, UserCacheAsyncDeleteDTO.class);
+                if (CacheAsyncDeleteCode.USER_INFO_DELETE.getCode() == userCacheAsyncDeleteDTO.getCode()) {
+                    Long userId = JSON.parseObject(userCacheAsyncDeleteDTO.getJson()).getLong("userId");
+                    redisTemplate.delete(userProviderCacheKeyBuilder.buildUserInfoKey(userId));
+                    LOGGER.info("延迟删除用户信息缓存，userId is {}", userId);
+                } else if (CacheAsyncDeleteCode.USER_TAG_DELETE.getCode() == userCacheAsyncDeleteDTO.getCode()) {
+                    Long userId = JSON.parseObject(userCacheAsyncDeleteDTO.getJson()).getLong("userId");
+                    redisTemplate.delete(userProviderCacheKeyBuilder.buildTagKey(userId));
+                    LOGGER.info("延迟删除用户标签缓存，userId is {}", userId);
                 }
-                redisTemplate.delete(userProviderCacheKeyBuilder.buildUserInfoKey(userDTO.getUserId()));
-                LOGGER.error("延迟删除处理，userDTO is {}", userDTO);
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             });
             defaultMQPushConsumer.start();
